@@ -1,0 +1,21 @@
+{
+  "name": "karunya-treasure-hunt",
+  "version": "1.0.0",
+  "description": "Bible-themed campus treasure hunt for 20 teams with QR-code clue stations and a live admin dashboard.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js",
+    "qrcodes": "node generate-qrcodes.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.0",
+    "qrcode": "^1.5.3"
+  }
+}

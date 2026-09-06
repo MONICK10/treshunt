@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Treasure Hunt</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>.wrap { max-width: 900px; }</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🗺️ Admin Dashboard</h1>
+    <p class="subtitle">Live progress — all teams</p>
+
+    <div id="login-card" class="card">
+      <label for="password">Admin Password</label>
+      <input id="password" type="password" placeholder="Password" />
+      <button id="login-btn">View Dashboard</button>
+      <div id="login-error" class="error"></div>
+    </div>
+
+    <div id="map-card" class="card" style="display:none;">
+      <div class="top-bar">
+        <span class="map-title">Live team positions</span>
+        <span id="map-updated" style="font-size:0.8rem;color:#8a7857;"></span>
+      </div>
+      <div id="map-note" class="map-note" hidden></div>
+      <div id="live-map" style="height:600px;"></div>
+      <p class="map-hint">Click a team's marker for its full route.</p>
+    </div>
+
+    <div id="team-panel" class="team-panel" hidden>
+      <div class="team-panel-backdrop" data-close></div>
+      <div class="team-panel-body" role="dialog" aria-modal="true" aria-labelledby="tp-title">
+        <button class="team-panel-close" data-close aria-label="Close">&times;</button>
+        <div id="tp-header" class="tp-header"></div>
+        <ol id="tp-stops" class="tp-stops"></ol>
+      </div>
+    </div>
+
+    <div id="board-card" class="card" style="display:none;">
+      <div class="top-bar">
+        <span id="last-updated" style="font-size:0.8rem;color:#8a7857;"></span>
+        <button class="link-btn" id="logout-btn">log out</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Team</th><th>Progress</th><th>At</th><th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/locations-map.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>
