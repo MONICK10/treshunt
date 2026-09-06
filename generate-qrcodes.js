@@ -1,7 +1,8 @@
 // Run with: npm run qrcodes
-// Generates one QR code PNG per physical location, pointing to your
-// deployed site with ?loc=<ID>. Print each one and place it at that
-// location. Re-run this AFTER you know your real deployed BASE_URL.
+// Generates one QR code PNG per physical location (CS Department + the 11
+// pool stops = 12 codes total), pointing to your deployed site with
+// ?loc=<ID>. Print each one and place it at that location. Re-run this
+// AFTER you know your real deployed BASE_URL.
 //
 // CS_DEPT gets ONE QR code, used TWICE by every team: once to start
 // (starts their clock, gives their first clue) and once at the very end

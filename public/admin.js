@@ -16,9 +16,10 @@ const LOCATION_COORDS = window.LOCATION_COORDS || {};
 let pollInterval = null;
 let knownTeamCount = 0;
 
-// Leaflet state
-let lmap = null;
-const markers = {}; // teamNumber -> L.marker
+// Mapbox GL state
+let map = null;
+let mapInitStarted = false;
+const markers = {}; // teamNumber -> mapboxgl.Marker
 
 // Per-team detail panel state
 let panelTeam = null;
@@ -76,7 +77,7 @@ function render(teams) {
       return `
         <tr class="${t.finishedAt ? "finished" : ""}">
           <td>${rank}</td>
-          <td>${t.teamName} <span style="color:#8a7857;font-size:0.8em;">(${t.username})</span></td>
+          <td>${t.teamName} <span style="color:var(--ink-muted);font-size:0.8em;">(${t.username})</span></td>
           <td>${t.stopsCompleted}/${t.totalStops} — ${t.currentLocationName}</td>
           <td>${fmtTime(t.lastScanAt || t.startedAt)}</td>
           <td>${fmtElapsed(t.elapsedMs)}</td>
@@ -87,28 +88,57 @@ function render(teams) {
   knownTeamCount = teams.length;
 }
 
-// ---------- Leaflet live-positions map ----------
+// ---------- Mapbox GL live-positions map ----------
 
-function allCoords() {
-  return Object.values(LOCATION_COORDS)
-    .filter((c) => c && typeof c.lat === "number" && typeof c.lng === "number")
-    .map((c) => [c.lat, c.lng]);
+// Average of every known campus coordinate, as [lng, lat] for Mapbox.
+function avgCenter() {
+  const coords = Object.values(LOCATION_COORDS).filter(
+    (c) => c && typeof c.lat === "number" && typeof c.lng === "number"
+  );
+  if (!coords.length) return [76.7449, 10.9357]; // Karunya campus fallback
+  const lat = coords.reduce((s, c) => s + c.lat, 0) / coords.length;
+  const lng = coords.reduce((s, c) => s + c.lng, 0) / coords.length;
+  return [lng, lat];
 }
 
-function ensureMap() {
-  if (lmap || typeof L === "undefined") return lmap;
+// Build (once) the Mapbox map. Needs an access token from the admin-only
+// /api/admin/maps-key endpoint — without it, the table still works.
+async function ensureMap() {
+  if (map) return map;
+  if (mapInitStarted) return null; // a previous attempt is still resolving / failed
+  mapInitStarted = true;
 
-  lmap = L.map("live-map", { scrollWheelZoom: true });
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "© OpenStreetMap contributors",
-  }).addTo(lmap);
+  if (typeof mapboxgl === "undefined") {
+    setNote("Map library didn't load — the table below still works.");
+    return null;
+  }
 
-  const all = allCoords();
-  if (all.length) lmap.fitBounds(L.latLngBounds(all).pad(0.2));
-  else lmap.setView([10.9357, 76.7449], 15);
+  const { ok, data } = await api("/api/admin/maps-key");
+  const token = ok && data && typeof data.token === "string" ? data.token : "";
+  if (!token) {
+    setNote(
+      "Mapbox token missing — set MAPBOX_ACCESS_TOKEN in the server .env to enable the live map. The table below still works."
+    );
+    mapInitStarted = false; // allow a retry once the token is configured
+    return null;
+  }
 
-  return lmap;
+  try {
+    mapboxgl.accessToken = token;
+    map = new mapboxgl.Map({
+      container: "live-map",
+      style: "mapbox://styles/mapbox/dark-v11", // dark monochrome — matches the navy/gold theme
+      center: avgCenter(),
+      zoom: 17,
+    });
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+  } catch (e) {
+    map = null;
+    setNote("Couldn't start the map (WebGL may be unavailable) — the table below still works.");
+    return null;
+  }
+
+  return map;
 }
 
 const LIVE_FRESH_SECONDS = 120;
@@ -123,17 +153,25 @@ function isLiveFresh(t) {
   );
 }
 
-function teamIcon(finished, teamNumber, isLive) {
-  const cls = ["team-marker"];
-  if (finished) cls.push("finished");
-  if (isLive) cls.push("live");
-  return L.divIcon({
-    className: "team-marker-wrap",
-    html: `<div class="${cls.join(" ")}">T${teamNumber}</div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -18],
+// The DOM element for a team's map pin: a filled circle with "T{n}" in it.
+// `red/in-progress`, `green/finished`, plus a `.live` pulsing ring when the
+// pin is on the team's real GPS rather than a snapped building.
+function markerClass(finished, isLive) {
+  return "team-marker" + (finished ? " finished" : "") + (isLive ? " live" : "");
+}
+
+function makeMarkerEl(t, isLive) {
+  const wrap = document.createElement("div");
+  wrap.className = "team-marker-wrap";
+  const dot = document.createElement("div");
+  dot.className = markerClass(!!t.finishedAt, isLive);
+  dot.textContent = `T${t.teamNumber}`;
+  wrap.appendChild(dot);
+  wrap.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openTeamPanel(t.teamNumber);
   });
+  return wrap;
 }
 
 // Fan teams sharing a location onto a small ring so labels stay separate.
@@ -164,42 +202,44 @@ function popupHtml(t, isLive) {
   );
 }
 
-function placeMarker(t, pos, isLive) {
+// Move an existing marker (no flicker) or create it the first time. `lngLat`
+// is [lng, lat] for Mapbox.
+function placeMarker(t, lngLat, isLive) {
   let m = markers[t.teamNumber];
   if (!m) {
-    m = L.marker(pos, { icon: teamIcon(!!t.finishedAt, t.teamNumber, isLive) })
-      .bindPopup(popupHtml(t, isLive))
-      .addTo(lmap);
-    m.on("click", () => openTeamPanel(t.teamNumber));
+    const el = makeMarkerEl(t, isLive);
+    m = new mapboxgl.Marker({ element: el, anchor: "center" })
+      .setLngLat(lngLat)
+      .setPopup(new mapboxgl.Popup({ offset: 20, closeButton: true }).setHTML(popupHtml(t, isLive)))
+      .addTo(map);
     markers[t.teamNumber] = m;
   } else {
-    m.setLatLng(pos);
-    m.setIcon(teamIcon(!!t.finishedAt, t.teamNumber, isLive));
-    m.setPopupContent(popupHtml(t, isLive));
+    m.setLngLat(lngLat);
+    const dot = m.getElement().querySelector(".team-marker");
+    if (dot) dot.className = markerClass(!!t.finishedAt, isLive);
+    const pop = m.getPopup();
+    if (pop) pop.setHTML(popupHtml(t, isLive));
   }
 }
 
 function renderLive(teams) {
   mapUpdated.textContent = "Updated " + new Date().toLocaleTimeString();
 
-  if (!ensureMap()) {
-    setNote("Map library didn't load — the table below still works.");
-    return;
-  }
+  if (!map) return; // no map (no token / no WebGL) — setNote already explained why
 
   const seen = new Set();
   const missingLocs = new Set();
 
   // Teams with a fresh phone fix: plot at their real coordinate, no fan-out
-  // (real positions are already spread out).
+  // (real GPS positions are already spread out).
   for (const t of teams) {
     if (!isLiveFresh(t)) continue;
-    placeMarker(t, [t.liveLocation.lat, t.liveLocation.lng], true);
+    placeMarker(t, [t.liveLocation.lng, t.liveLocation.lat], true);
     seen.add(t.teamNumber);
   }
 
   // Everyone else: snap to their last scanned building, fanning apart any
-  // teams sharing the same one.
+  // teams sharing the same one so their labels stay readable.
   const byLoc = {};
   for (const t of teams) {
     if (isLiveFresh(t)) continue;
@@ -213,7 +253,7 @@ function renderLive(teams) {
     }
     const spots = ringOffsets(base, group.length);
     group.forEach((t, i) => {
-      placeMarker(t, [spots[i].lat, spots[i].lng], false);
+      placeMarker(t, [spots[i].lng, spots[i].lat], false);
       seen.add(t.teamNumber);
     });
   }
@@ -221,7 +261,7 @@ function renderLive(teams) {
   // remove markers for teams no longer present
   for (const num of Object.keys(markers)) {
     if (!seen.has(Number(num))) {
-      lmap.removeLayer(markers[num]);
+      markers[num].remove();
       delete markers[num];
     }
   }
@@ -234,6 +274,7 @@ function renderLive(teams) {
 }
 
 async function refreshLive() {
+  await ensureMap();
   const { ok, data } = await api("/api/admin/live-positions");
   if (ok) renderLive(data.teams || []);
 }
@@ -251,11 +292,11 @@ function renderTeamPanel(d) {
   const live = d.liveLocation;
   let liveLine;
   if (!live || typeof live.staleSeconds !== "number") {
-    liveLine = "Live location: off — using last scanned stop instead";
+    liveLine = "Live location: off — showing last scanned stop instead";
   } else if (live.staleSeconds < LIVE_FRESH_SECONDS) {
     liveLine = `Live location: active, updated ${Math.round(live.staleSeconds)}s ago`;
   } else {
-    liveLine = `Live location: stale (${Math.round(live.staleSeconds / 60)}m ago) — using last scanned stop`;
+    liveLine = `Live location: stale (${Math.round(live.staleSeconds / 60)}m ago) — showing last scanned stop instead`;
   }
 
   tpHeader.innerHTML =
@@ -306,7 +347,7 @@ function closeTeamPanel() {
   clearInterval(panelInterval);
   panelInterval = null;
   teamPanel.hidden = true;
-  if (lmap) lmap.getContainer().focus();
+  if (map) map.getContainer().focus();
 }
 
 // ---------- polling / auth ----------
@@ -321,14 +362,17 @@ async function poll() {
   refreshLive();
 }
 
-function startSession() {
+async function startSession() {
   loginCard.style.display = "none";
   mapCard.style.display = "block";
   boardCard.style.display = "block";
 
-  // Container is visible now — let Leaflet measure it.
-  ensureMap();
-  if (lmap) setTimeout(() => lmap.invalidateSize(), 0);
+  // Container is visible now — build the map and let it measure itself.
+  await ensureMap();
+  if (map) {
+    map.once("load", () => map.resize());
+    setTimeout(() => map.resize(), 0);
+  }
 
   poll();
   clearInterval(pollInterval);

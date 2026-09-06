@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Karunya Treasure Hunt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <!-- Always-visible elapsed-time badge, pinned to the corner while playing. -->
+  <div id="timer-badge" style="display:none;">⏱ 0:00</div>
+
+  <div class="wrap">
+    <h1>📜 Campus Treasure Hunt</h1>
+    <p class="subtitle">Seek, and ye shall find.</p>
+
+    <div id="login-card" class="card">
+      <label for="username">Team Username</label>
+      <input id="username" autocomplete="username" placeholder="e.g. team07" />
+      <label for="password">Team Password</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Password" />
+      <button id="login-btn">Enter the Hunt</button>
+      <div id="login-error" class="error"></div>
+    </div>
+
+    <div id="game-card" class="card" style="display:none;">
+      <div class="top-bar">
+        <strong id="team-name"></strong>
+        <button class="link-btn" id="logout-btn">log out</button>
+      </div>
+
+      <p id="geo-note" class="geo-note" style="display:none;"></p>
+
+      <div id="scan-result"></div>
+
+      <div id="clue-area"></div>
+
+      <!-- In-page camera scanner + manual fallback -->
+      <div id="scan-section">
+        <button id="scan-btn">📷 Scan QR Code</button>
+        <div id="qr-reader" style="display:none;"></div>
+        <div id="scan-controls" style="display:none;">
+          <button class="secondary" id="scan-cancel">Cancel scanning</button>
+        </div>
+        <button class="link-btn" id="manual-toggle">type the code instead</button>
+        <div id="manual-entry" style="display:none;">
+          <input id="manual-code" placeholder="e.g. CS_DEPT" autocapitalize="characters" />
+          <button id="manual-submit">Submit code</button>
+        </div>
+      </div>
+
+      <div class="progress-track" id="progress-track"></div>
+      <div class="meta">
+        <span id="progress-text"></span>
+        <span id="timer-text"></span>
+      </div>
+    </div>
+
+    <div id="trail-card" class="card" style="display:none;">
+      <div class="trail-title">Your Trail</div>
+      <ol id="trail-list" class="trail"></ol>
+    </div>
+
+    <p class="footnote">
+      Found the QR code? Scan it with the button above, or with your phone's camera — it'll bring you right back here.
+    </p>
+  </div>
+
+  <script src="/starfield.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

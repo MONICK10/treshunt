@@ -250,7 +250,7 @@ function startGeoTracking() {
 
   if (geoNote) {
     geoNote.textContent =
-      "Enable location so organizers can track your progress on the map — this helps in emergencies too.";
+      "Enable location so organizers can see your team on the live map — this also helps in an emergency.";
     geoNote.style.display = "block";
   }
 

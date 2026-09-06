@@ -1,4 +1,4 @@
-// Real GPS position of each campus location, for the admin Leaflet map.
+// Real GPS position of each campus location, for the admin live map (Mapbox GL).
 //
 //   lat / lng = decimal degrees (WGS84), the same numbers Google Maps shows
 //   when you right-click a spot and pick "What's here?" / copy coordinates.
@@ -17,21 +17,18 @@
 window.LOCATION_COORDS = {
   CS_DEPT:       { lat: 10.93570, lng: 76.74490, placeholder: true },
 
-  CS_CANTEEN:    { lat: 10.93545, lng: 76.74460, placeholder: true },
+  CANTEEN:       { lat: 10.93545, lng: 76.74460, placeholder: true },
   CTC1:          { lat: 10.93600, lng: 76.74520, placeholder: true },
-  CTC2:          { lat: 10.93625, lng: 76.74555, placeholder: true },
-  ECE:           { lat: 10.93520, lng: 76.74535, placeholder: true },
+  MEDIA:         { lat: 10.93625, lng: 76.74555, placeholder: true },
 
   EMMANUEL_AUDI: { lat: 10.93490, lng: 76.74430, placeholder: true },
-  ELOHIM_AUDI:   { lat: 10.93460, lng: 76.74475, placeholder: true },
+  BETHESDA:      { lat: 10.93460, lng: 76.74475, placeholder: true },
   LIBRARY:       { lat: 10.93580, lng: 76.74445, placeholder: true },
 
   CIVIL:         { lat: 10.93555, lng: 76.74585, placeholder: true },
   MECH:          { lat: 10.93615, lng: 76.74610, placeholder: true },
-  MECH_CANTEEN:  { lat: 10.93650, lng: 76.74635, placeholder: true },
 
   CHANDRAN:      { lat: 10.93680, lng: 76.74540, placeholder: true },
   AGRI:          { lat: 10.93720, lng: 76.74470, placeholder: true },
-  CAKE_WORLD_1:  { lat: 10.93690, lng: 76.74405, placeholder: true },
-  CAKE_WORLD_2:  { lat: 10.93725, lng: 76.74360, placeholder: true },
+  CAKE_WORLD:    { lat: 10.93690, lng: 76.74405, placeholder: true },
 };

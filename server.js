@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const locById = Object.fromEntries(POOL.map((l) => [l.id, l]));
 
-// A team's `order` array is [CS_DEPT, ...10 shuffled stops, CS_DEPT].
+// A team's `order` array is [CS_DEPT, ...11 shuffled stops, CS_DEPT].
 // The clue shown at any index depends on whether CS_DEPT there means
 // "start" (index 0) or "finish" (the last index) — everything else comes
 // straight from the pool.
@@ -225,6 +225,13 @@ app.post("/api/admin/login", (req, res) => {
 app.post("/api/admin/logout", (req, res) => {
   res.clearCookie("admin_token");
   res.json({ ok: true });
+});
+
+// Hands the Mapbox token to the admin live map. Admin-protected so the token
+// never ships in committed code or to non-admins. Empty string if unset —
+// the frontend then shows a "map key missing" note and still renders the table.
+app.get("/api/admin/maps-key", requireAdmin, (req, res) => {
+  res.json({ token: process.env.MAPBOX_ACCESS_TOKEN || "" });
 });
 
 app.get("/api/admin/teams", requireAdmin, async (req, res) => {
