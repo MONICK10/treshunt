@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const locById = Object.fromEntries(POOL.map((l) => [l.id, l]));
 
-// A team's `order` array is [CS_DEPT, ...12 stops in group order, CS_DEPT].
+// A team's `order` array is [CS_DEPT, ...11 shuffled stops, CS_DEPT].
 // The clue shown at any index depends on whether CS_DEPT there means
 // "start" (index 0) or "finish" (the last index) — everything else comes
 // straight from the pool.
@@ -100,24 +100,14 @@ function teamStatusPayload(team) {
   // One point per stop in the route (start + pool stops + finish). A point is
   // only named once the team has actually scanned it — upcoming points expose
   // their number but never their location, so the puzzle isn't spoiled.
-  // `at` (scan time) is included for done stops so the finish result board
-  // can show split times.
   const trail = team.order.map((id, i) => {
     const stopDone = i < team.currentIndex;
-    return {
-      number: i + 1,
-      done: stopDone,
-      name: stopDone ? locationName(id) : null,
-      at: stopDone && team.scans[i] ? team.scans[i].at : null,
-    };
+    return { number: i + 1, done: stopDone, name: stopDone ? locationName(id) : null };
   });
 
   return {
     teamName: team.teamName,
     teamNumber: team.teamNumber,
-    displayName: team.displayName || null,
-    // Name can be set/changed only until the clock starts.
-    nameLocked: team.startedAt != null,
     startedAt: team.startedAt,
     finishedAt: team.finishedAt,
     stopsCompleted: team.currentIndex,
@@ -160,24 +150,6 @@ app.post("/api/logout", (req, res) => {
 
 app.get("/api/me", requireTeam, (req, res) => {
   res.json(teamStatusPayload(req.team));
-});
-
-// Team sets its own display name. Allowed only before the clock starts —
-// once startedAt is set, the name is locked.
-app.post("/api/team/name", requireTeam, async (req, res) => {
-  const team = req.team;
-  if (team.startedAt) {
-    return res.status(409).json({ error: "name_locked", status: teamStatusPayload(team) });
-  }
-  let name = req.body && req.body.name != null ? String(req.body.name) : "";
-  // Strip angle brackets / control chars, collapse whitespace, cap length.
-  name = String(name).replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 30);
-  if (name.length < 2) {
-    return res.status(400).json({ error: "name_too_short" });
-  }
-  team.displayName = name;
-  await team.save();
-  res.json({ ok: true, status: teamStatusPayload(team) });
 });
 
 // Called when a team scans a QR code (loc = the location ID encoded in it).
@@ -271,11 +243,9 @@ app.get("/api/admin/teams", requireAdmin, async (req, res) => {
     return {
       teamNumber: t.teamNumber,
       teamName: t.teamName,
-      displayName: t.displayName || null,
       username: t.username,
       stopsCompleted: t.currentIndex,
       totalStops: t.order.length,
-      stopsLeft: Math.max(0, t.order.length - t.currentIndex),
       currentLocationName: t.finishedAt ? "FINISHED" : locationName(t.order[t.currentIndex]),
       startedAt: t.startedAt,
       finishedAt: t.finishedAt,
@@ -322,7 +292,6 @@ app.get("/api/admin/live-positions", requireAdmin, async (req, res) => {
     return {
       teamNumber: t.teamNumber,
       teamName: t.teamName,
-      displayName: t.displayName || null,
       locationId,
       locationName: locationName(locationId),
       lastScanAt: t.scans.length ? t.scans[t.scans.length - 1].at : null,
@@ -360,7 +329,6 @@ app.get("/api/admin/team/:teamNumber", requireAdmin, async (req, res) => {
   res.json({
     teamNumber: team.teamNumber,
     teamName: team.teamName,
-    displayName: team.displayName || null,
     startedAt: team.startedAt,
     finishedAt: team.finishedAt,
     elapsedMs,

@@ -68,30 +68,17 @@ function setNote(msg) {
   }
 }
 
-// ---------- all-teams table ----------
-
-// Team display names are set by participants — escape before injecting.
-function esc(s) {
-  return String(s == null ? "" : s).replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
-  );
-}
+// ---------- all-teams table (unchanged behaviour) ----------
 
 function render(teams) {
   rowsEl.innerHTML = teams
     .map((t, i) => {
       const rank = t.finishedAt ? i + 1 : "—";
-      const name = t.displayName || t.teamName;
-      const progress = t.finishedAt
-        ? "Finished"
-        : `${t.stopsCompleted}/${t.totalStops} · <span class="dim">${t.stopsLeft} left</span>` +
-          `<br><span class="dim">next: ${esc(t.currentLocationName)}</span>`;
       return `
-        <tr class="${t.finishedAt ? "finished" : ""}" data-team="${t.teamNumber}" tabindex="0" role="button">
+        <tr class="${t.finishedAt ? "finished" : ""}">
           <td>${rank}</td>
-          <td><strong>${esc(name)}</strong><br><span class="dim">${esc(t.username)}</span></td>
-          <td>${progress}</td>
+          <td>${t.teamName} <span style="color:var(--ink-muted);font-size:0.8em;">(${t.username})</span></td>
+          <td>${t.stopsCompleted}/${t.totalStops} — ${t.currentLocationName}</td>
           <td>${fmtTime(t.lastScanAt || t.startedAt)}</td>
           <td>${fmtElapsed(t.elapsedMs)}</td>
         </tr>`;
@@ -210,7 +197,7 @@ function popupHtml(t, isLive) {
     ? `📍 Live GPS · ${Math.round(t.liveLocation.staleSeconds)}s ago`
     : "Snapped to last scanned stop";
   return (
-    `<div class="team-popup"><strong>${esc(t.displayName || t.teamName)}</strong><br />${esc(t.locationName)}<br />` +
+    `<div class="team-popup"><strong>${t.teamName}</strong><br />${t.locationName}<br />` +
     `<span class="muted">${when}</span><br /><span class="muted">${src}</span></div>`
   );
 }
@@ -313,7 +300,7 @@ function renderTeamPanel(d) {
   }
 
   tpHeader.innerHTML =
-    `<h3 id="tp-title">${esc(d.displayName || d.teamName)}</h3>` +
+    `<h3 id="tp-title">${d.teamName}</h3>` +
     `<div class="tp-times">` +
     `<span>Elapsed <strong>${fmtElapsed(d.elapsedMs)}</strong></span>` +
     `<span>Start: ${fmtStamp(d.startedAt)}</span>` +
@@ -428,19 +415,6 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 
 document.getElementById("password")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("login-btn").click();
-});
-
-// Click (or Enter/Space on) any table row to open that team's full breakdown.
-rowsEl.addEventListener("click", (e) => {
-  const tr = e.target.closest("tr[data-team]");
-  if (tr) openTeamPanel(Number(tr.dataset.team));
-});
-rowsEl.addEventListener("keydown", (e) => {
-  const tr = e.target.closest && e.target.closest("tr[data-team]");
-  if (tr && (e.key === "Enter" || e.key === " ")) {
-    e.preventDefault();
-    openTeamPanel(Number(tr.dataset.team));
-  }
 });
 
 teamPanel.addEventListener("click", (e) => {

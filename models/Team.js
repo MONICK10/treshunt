@@ -11,9 +11,6 @@ const ScanSchema = new mongoose.Schema(
 const TeamSchema = new mongoose.Schema({
   teamNumber: { type: Number, required: true, unique: true },
   teamName: { type: String, required: true },
-  // Team-chosen display name (set once, before they start the run). When set,
-  // it's shown to the team and on the admin dashboard instead of teamName.
-  displayName: { type: String, default: null },
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
 
