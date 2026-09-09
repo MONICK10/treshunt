@@ -96,9 +96,17 @@ covers both.
 
 ## How it works, in short
 
+- After logging in, each team picks its own display name (e.g. "Spartans").
+  It's editable until they scan CS Dept to start, then locked. That name
+  shows on their screen and on the admin dashboard (next to `team01`).
 - Teams never see their whole route — only the clue for wherever they are
   right now — so peeking ahead or comparing routes with another team
   doesn't help.
+- Finishing (the second CS Dept scan) triggers a one-time confetti popup
+  and a result board on the team's screen: total time, finish time, and
+  every stop with its split time.
+- On the admin dashboard, click any team row (or its map pin) for the full
+  stop-by-stop breakdown — done, current target, and what's left.
 - Scanning the QR code at the WRONG location just says "that's not your
   next stop" — it doesn't reveal what the right one is.
 - The admin dashboard (`/admin.html`) auto-refreshes every few seconds and

@@ -23,6 +23,18 @@ const manualSubmit = document.getElementById("manual-submit");
 
 const geoNote = document.getElementById("geo-note");
 
+const nameCard = document.getElementById("name-card");
+const teamNameInput = document.getElementById("team-name-input");
+const nameSaveBtn = document.getElementById("name-save-btn");
+const nameError = document.getElementById("name-error");
+const editNameBtn = document.getElementById("edit-name-btn");
+const resultCard = document.getElementById("result-card");
+
+const celebrateEl = document.getElementById("celebrate");
+const confettiEl = document.getElementById("confetti");
+const celebrateTitle = document.getElementById("celebrate-title");
+const celebrateClose = document.getElementById("celebrate-close");
+
 let timerInterval = null;
 let currentStatus = null;
 let html5Qr = null;
@@ -170,11 +182,42 @@ function renderTrail(status) {
   }
 }
 
+function esc(s) {
+  return String(s == null ? "" : s).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
+}
+
+function teamLabel(status) {
+  return (status && (status.displayName || status.teamName)) || "Your Team";
+}
+
+// True while the team still has to pick a name (only possible before the
+// clock starts).
+function needsName(status) {
+  return !!status && !status.displayName && !status.startedAt && !status.done;
+}
+
 function renderStatus(status) {
   currentStatus = status;
   loginCard.style.display = "none";
+
+  // Step 1 — name the team. Shown only before the run starts.
+  if (needsName(status)) {
+    nameCard.style.display = "block";
+    gameCard.style.display = "none";
+    trailCard.style.display = "none";
+    resultCard.style.display = "none";
+    timerBadge.style.display = "none";
+    teamNameInput.focus();
+    return;
+  }
+  nameCard.style.display = "none";
   gameCard.style.display = "block";
-  teamNameEl.textContent = status.teamName;
+
+  teamNameEl.textContent = teamLabel(status);
+  editNameBtn.style.display = status.nameLocked ? "none" : "inline";
 
   progressTrack.innerHTML = "";
   for (let i = 0; i < status.totalStops; i++) {
@@ -187,14 +230,16 @@ function renderStatus(status) {
     : `Stop ${status.stopsCompleted + 1} of ${status.totalStops}`;
 
   if (status.done) {
-    clueArea.innerHTML = `
-      <div class="finish-banner">
-        <div class="big">🏁</div>
-        <p class="msg-good">You made it home! Show this screen to the organizers.</p>
-      </div>`;
+    clueArea.innerHTML = "";
     scanSection.style.display = "none";
     stopScanner();
-  } else if (status.currentClue) {
+    renderTimer(status);
+    renderResult(status);
+    maybeCelebrate(status);
+    return;
+  }
+
+  if (status.currentClue) {
     clueArea.innerHTML = `
       <div class="stop-badge">${status.currentClue.label}</div>
       <div class="riddle">${status.currentClue.riddle}</div>
@@ -203,8 +248,88 @@ function renderStatus(status) {
     scanSection.style.display = "block";
   }
 
+  resultCard.style.display = "none";
   renderTimer(status);
   renderTrail(status);
+}
+
+// ---------- finish result board ----------
+
+function renderResult(status) {
+  trailCard.style.display = "none";
+  resultCard.style.display = "block";
+
+  const start = status.startedAt ? new Date(status.startedAt).getTime() : null;
+  const finish = status.finishedAt ? new Date(status.finishedAt).getTime() : null;
+  const totalMs = start != null && finish != null ? finish - start : null;
+
+  // Split time between each scanned stop (skipping the very first CS Dept scan,
+  // which is the start line itself).
+  const stops = (status.trail || []).filter((p) => p.done && p.at && p.number > 1);
+  const lastNumber = status.totalStops;
+  let prev = start;
+  const rows = stops
+    .map((p) => {
+      const t = new Date(p.at).getTime();
+      const split = prev != null ? t - prev : null;
+      prev = t;
+      const label = p.number === lastNumber ? "🏁" : String(p.number - 1);
+      return `<li>
+        <span class="res-n">${label}</span>
+        <span class="res-place">${p.name}</span>
+        <span class="res-split">${split != null ? fmtElapsed(split) : "—"}</span>
+      </li>`;
+    })
+    .join("");
+
+  resultCard.innerHTML = `
+    <div class="result-head">
+      <div class="result-emoji">🏁</div>
+      <div class="result-team">${esc(teamLabel(status))}</div>
+      <div class="result-sub">Finished all ${status.totalStops} stops</div>
+    </div>
+    <div class="result-time">
+      <div class="result-time-num">${totalMs != null ? fmtElapsed(totalMs) : "—"}</div>
+      <div class="result-time-lbl">total time</div>
+    </div>
+    <div class="result-meta">Finished at ${
+      finish != null ? new Date(finish).toLocaleTimeString() : "—"
+    }</div>
+    <ol class="result-stops">
+      <li class="result-stops-head"><span class="res-n">#</span><span class="res-place">Stop</span><span class="res-split">Split</span></li>
+      ${rows}
+    </ol>
+    <p class="footnote" style="margin-top:14px;">Show this screen to the organizers.</p>
+  `;
+}
+
+// ---------- one-time celebration ----------
+
+function maybeCelebrate(status) {
+  const key = "th_celebrated_" + status.teamNumber;
+  let already = false;
+  try { already = localStorage.getItem(key) === "1"; } catch (e) { /* private mode */ }
+  if (already) return;
+  try { localStorage.setItem(key, "1"); } catch (e) { /* ignore */ }
+
+  celebrateTitle.textContent = teamLabel(status) + " — you made it!";
+  celebrateEl.hidden = false;
+  launchConfetti();
+}
+
+function launchConfetti() {
+  confettiEl.innerHTML = "";
+  const colors = ["#f0c14b", "#ffdd7a", "#4ade80", "#ffffff", "#ff9f45", "#7ab8ff"];
+  for (let i = 0; i < 130; i++) {
+    const piece = document.createElement("i");
+    piece.className = "confetti-piece";
+    piece.style.left = (Math.random() * 100).toFixed(2) + "%";
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = (Math.random() * 0.7).toFixed(2) + "s";
+    piece.style.animationDuration = (2.2 + Math.random() * 2).toFixed(2) + "s";
+    confettiEl.appendChild(piece);
+  }
+  setTimeout(() => { confettiEl.innerHTML = ""; }, 5000);
 }
 
 async function submitScan(loc) {
@@ -235,11 +360,59 @@ async function tryResume() {
   if (ok) {
     renderStatus(data);
     startGeoTracking();
-    if (pendingLoc) await submitScan(pendingLoc);
+    // Don't auto-submit a pending scan while the team still has to name itself
+    // — that would start their clock before they've picked a name.
+    if (pendingLoc && !needsName(data)) await submitScan(pendingLoc);
     return true;
   }
   return false;
 }
+
+// ---------- team name ----------
+
+async function saveTeamName() {
+  nameError.textContent = "";
+  const name = teamNameInput.value.trim();
+  if (name.length < 2) {
+    nameError.textContent = "Enter a team name (at least 2 characters).";
+    return;
+  }
+  const { ok, data } = await api("/api/team/name", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  if (!ok) {
+    nameError.textContent =
+      data && data.error === "name_locked"
+        ? "Too late to rename — your run has already started."
+        : "Couldn't save that name. Try again.";
+    if (data && data.status) renderStatus(data.status);
+    return;
+  }
+  renderStatus(data.status);
+  if (pendingLoc && !needsName(data.status)) await submitScan(pendingLoc);
+}
+
+nameSaveBtn.addEventListener("click", saveTeamName);
+teamNameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveTeamName();
+});
+
+editNameBtn.addEventListener("click", () => {
+  if (currentStatus && currentStatus.nameLocked) return;
+  teamNameInput.value = (currentStatus && currentStatus.displayName) || "";
+  nameError.textContent = "";
+  nameCard.style.display = "block";
+  gameCard.style.display = "none";
+  trailCard.style.display = "none";
+  resultCard.style.display = "none";
+  teamNameInput.focus();
+});
+
+celebrateClose.addEventListener("click", () => {
+  celebrateEl.hidden = true;
+  confettiEl.innerHTML = "";
+});
 
 // ---------- optional live location sharing ----------
 // Opt-in: if the team allows it, their phone streams GPS to the admin map.
@@ -322,7 +495,7 @@ document.getElementById("login-btn").addEventListener("click", async () => {
   }
   renderStatus(data);
   startGeoTracking();
-  if (pendingLoc) await submitScan(pendingLoc);
+  if (pendingLoc && !needsName(data)) await submitScan(pendingLoc);
 });
 
 document.getElementById("logout-btn").addEventListener("click", async () => {
@@ -331,7 +504,10 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   await stopScanner();
   stopGeoTracking();
   gameCard.style.display = "none";
+  nameCard.style.display = "none";
   trailCard.style.display = "none";
+  resultCard.style.display = "none";
+  celebrateEl.hidden = true;
   timerBadge.style.display = "none";
   loginCard.style.display = "block";
 });
