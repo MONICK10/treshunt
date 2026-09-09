@@ -1,7 +1,8 @@
 // Bible-themed clues for each campus location.
 // `id` is what gets encoded in that location's QR code (as ?loc=ID).
-// `riddle` is shown to a team BEFORE they've found the place — it never
-// names the location outright (except CS_DEPT, the known assembly point).
+// `riddle` is shown to a team BEFORE they've found the place. Each clue has
+// two parts: a short Bible story with a recall question, then a "->" pointer
+// question that steers them to the campus spot.
 //
 // GAME SHAPE: every team's route is
 //   CS_DEPT (start) -> all 12 POOL locations in a fixed order -> CS_DEPT (finish)
@@ -11,14 +12,15 @@
 const CS_DEPT = {
   id: "CS_DEPT",
   name: "CS Department",
-  // Shown before the team has scanned CS Dept for the first time.
+  // Shown before the team has scanned CS Dept for the first time. CS Dept is
+  // the known assembly point, so this one just tells them to start.
   startText:
     "Every race has a beginning. Yours starts right here. Scan the QR code at the CS Department to start your clock and receive your very first clue.",
   startVerse: "“Let us run with endurance the race that is set before us.” — Hebrews 12:1",
-  // Shown after all stops are done, telling them to come back.
+  // Shown after all 12 stops are done — the final clue home.
   finishText:
-    "Twelve places found, twelve stories walked — now only one place remains: the place where it all began. Return to the CS Department and scan to finish the race.",
-  finishVerse: "“I have fought the good fight, I have finished the race, I have kept the faith.” — 2 Timothy 4:7",
+    "Jesus told a story about a son who wandered far, wasted everything, then turned around and went home — and his father ran to meet him. (Luke 15) Where did the son return to? → Go back to the place you return to every day, and scan there to finish the race.",
+  finishVerse: "“He arose and came to his father.” — Luke 15:20",
 };
 
 const POOL = [
@@ -26,85 +28,85 @@ const POOL = [
     id: "CANTEEN",
     name: "Canteen",
     riddle:
-      "Five loaves, two fish, a hillside crowd of thousands — yet none went home hungry, and baskets of leftovers remained. Find the place on campus where hunger is answered every single day.",
-    verse: "“They all ate and were satisfied, and the disciples picked up twelve baskets full.” — Matthew 14:20",
+      "Jesus fed five thousand people on a hillside with only five loaves and two fish. What did He feed them? → Where do you go to get food on this campus?",
+    verse: "“They all ate and were satisfied.” — Matthew 14:20",
   },
   {
     id: "EMMANUEL_AUDI",
     name: "Emmanuel Auditorium",
     riddle:
-      "\"His name shall be called Emmanuel\" — which means, God with us. Where the whole assembly gathers as one, in song and one accord, find the hall that carries His name.",
-    verse: "“They shall call his name Immanuel, which means, God with us.” — Matthew 1:23",
+      "\"The virgin shall conceive and bear a Son, and they shall call His name ____.\" Fill in the blank. → Which building on campus has that name written on it?",
+    verse: "“They shall call his name Immanuel (God with us).” — Isaiah 7:14 / Matthew 1:23",
   },
   {
     id: "MECH",
     name: "Mechanical Department",
     riddle:
-      "Tubal-Cain was the forger of every tool of bronze and iron. And as iron sharpens iron, so one craftsman sharpens another. Find where metal, machines, and minds are shaped together.",
-    verse: "“As iron sharpens iron, so one person sharpens another.” — Proverbs 27:17",
+      "Tubal-Cain was the first man to forge tools of iron and bronze. What did he work with? → Where do you go to learn about machines and metal?",
+    verse: "“Tubal-Cain, forger of all instruments of bronze and iron.” — Genesis 4:22",
   },
   {
     id: "CIVIL",
     name: "Civil Department",
     riddle:
-      "Joseph, husband of Mary, earned his bread shaping wood and stone — a carpenter by trade. Find the department where today's builders learn to shape beams, stone, and cities.",
-    verse: "“Is not this the carpenter's son?” — Matthew 13:55",
+      "Joseph, the earthly father of Jesus, had a trade he worked with his hands. What was his job? → Where do you go to learn how to build things?",
+    verse: "“Is this not the carpenter's son?” — Matthew 13:55",
   },
   {
     id: "CHANDRAN",
     name: "Chandran Stores",
     riddle:
-      "He drove out those who bought and sold, overturning the tables of the money-changers, saying His house should be a house of prayer, not a den of robbers. Find today's marketplace on campus, where buying and selling still happen.",
-    verse: "“My house shall be called a house of prayer, but you have made it a den of robbers.” — Matthew 21:13",
+      "Esau came in from the field so hungry that he sold his birthright for a single bowl of stew. What was he feeling? → Where do you go when you're hungry and just want a snack?",
+    verse: "“Esau despised his birthright.” — Genesis 25:34",
   },
   {
     id: "AGRI",
     name: "Agriculture Department",
     riddle:
-      "A sower went out to sow. Some seed fell on the path, some on rocky ground, some among thorns — but some fell on good soil and yielded a hundredfold. Find where seeds are still sown and soil still matters.",
-    verse: "“Other seed fell on good soil and produced a crop — a hundred, sixty or thirty times what was sown.” — Matthew 13:8",
+      "In the parable, a farmer went out and scattered something across his field. What was he sowing? → Where do you go to learn about farming and crops?",
+    verse: "“A sower went out to sow.” — Matthew 13:3",
   },
   {
     id: "MEDIA",
     name: "Media Department",
     riddle:
-      "\"Go into all the world and preach the gospel to every creature\" — a message meant to be carried far, told and retold, filmed and broadcast. Find the department where stories are recorded and sent out to everyone.",
-    verse: "“Go into all the world and preach the gospel to all creation.” — Mark 16:15",
+      "Jesus said, \"What you hear whispered, proclaim from the housetops.\" What did He tell them to do? → Where do you go to record and share news on campus?",
+    verse: "“What you hear, proclaim from the housetops.” — Matthew 10:27",
   },
   {
     id: "LIBRARY",
     name: "Central Library",
     riddle:
-      "In the beginning was the Word, and the Word was with God. Long before screens, His words were copied by hand and kept on scrolls. Find the quiet hall where words still live on shelves.",
-    verse: "“In the beginning was the Word, and the Word was with God.” — John 1:1",
+      "Hilkiah the priest was clearing the temple when he found the lost Book of the Law. What did he find? → Where do you go to find thousands of books?",
+    verse: "“I have found the Book of the Law in the house of the LORD.” — 2 Kings 22:8",
   },
   {
     id: "CTC1",
     name: "Computer Technology Center 1",
     riddle:
-      "A mysterious hand once wrote strange words on a palace wall, and only one man could decode their meaning. Find the center where strange code is decoded and understood, every single day.",
-    verse: "“This is the interpretation of the message: ...you have been weighed in the balances.” — Daniel 5:26-27",
+      "John was told to write down what he saw and send the scroll to the seven churches. What was he told to do? → Where do you go to type, not write? Start with the first lab.",
+    verse: "“Write what you see in a book and send it.” — Revelation 1:11",
   },
   {
     id: "CAKE_WORLD",
     name: "Cake World",
     riddle:
-      "Every morning bread rained down from heaven, fine as frost, tasting like wafers made with honey — and the land they journeyed toward was promised to flow with milk and honey. Find the shop on campus where such sweetness is still sold.",
-    verse: "“It was like white coriander seed, and the taste of it was like wafers made with honey.” — Exodus 16:31",
+      "During the famine, Elijah asked the widow of Zarephath to bake him a small cake of bread first. What did he ask her to make? → Where do you go to buy one?",
+    verse: "“Make me a little cake of it first.” — 1 Kings 17:13",
   },
   {
     id: "BETHESDA",
     name: "Bethesda",
     riddle:
-      "By the Sheep Gate in Jerusalem lay a pool with five covered walkways, where a man waited thirty-eight years for the water to stir — until One told him, \"Rise, take up your bed, and walk.\" Find the place on campus that carries this pool's name.",
-    verse: "“Now there is in Jerusalem by the Sheep Gate a pool, in Aramaic called Bethesda.” — John 5:2",
+      "By a pool with five covered walkways, a sick man waited thirty-eight years for the water to stir. What was the name of that pool? → Which building here carries the same name?",
+    verse: "“There is in Jerusalem a pool called Bethesda.” — John 5:2",
   },
   {
     id: "AEROSPACE",
     name: "Aerospace Department",
     riddle:
-      "Elijah never tasted death: a chariot of fire and horses of fire swept him up, and he went by a whirlwind into heaven. And the prophet promised that those who wait on the Lord will rise on wings like eagles. Find the department where flight is studied and craft are built to leave the ground.",
-    verse: "“They shall mount up with wings like eagles; they shall run and not be weary.” — Isaiah 40:31",
+      "As Elijah and Elisha walked together, a chariot of fire and horses of fire appeared, and Elijah was carried up in a whirlwind. Which direction did he go? → Where do you go to learn about things that fly?",
+    verse: "“Elijah went up by a whirlwind into heaven.” — 2 Kings 2:11",
   },
 ];
 
