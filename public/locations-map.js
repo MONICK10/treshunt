@@ -27,6 +27,7 @@ window.LOCATION_COORDS = {
 
   CIVIL:         { lat: 10.93555, lng: 76.74585, placeholder: true },
   MECH:          { lat: 10.93615, lng: 76.74610, placeholder: true },
+  AEROSPACE:     { lat: 10.93650, lng: 76.74635, placeholder: true },
 
   CHANDRAN:      { lat: 10.93680, lng: 76.74540, placeholder: true },
   AGRI:          { lat: 10.93720, lng: 76.74470, placeholder: true },

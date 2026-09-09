@@ -1,8 +1,11 @@
 // Run with: npm run qrcodes
-// Generates one QR code PNG per physical location (CS Department + the 11
-// pool stops = 12 codes total), pointing to your deployed site with
+// Generates one QR code PNG per physical location (CS Department + the 12
+// pool stops = 13 codes total), pointing to your deployed site with
 // ?loc=<ID>. Print each one and place it at that location. Re-run this
 // AFTER you know your real deployed BASE_URL.
+//
+// Output goes to a fresh qr-groups/ folder (wiped on each run) so stale
+// codes from an earlier location list never linger.
 //
 // CS_DEPT gets ONE QR code, used TWICE by every team: once to start
 // (starts their clock, gives their first clue) and once at the very end
@@ -15,9 +18,10 @@ const QRCode = require("qrcode");
 const { CS_DEPT, POOL } = require("./clues");
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-const outDir = path.join(__dirname, "qr");
+const outDir = path.join(__dirname, "qr-groups");
 
-if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
+fs.rmSync(outDir, { recursive: true, force: true });
+fs.mkdirSync(outDir, { recursive: true });
 
 async function main() {
   const all = [{ id: CS_DEPT.id, name: CS_DEPT.name }, ...POOL];
@@ -33,4 +37,9 @@ async function main() {
   console.log("CS_DEPT.png is used for BOTH the start and the finish — one printed copy at CS Dept is enough.");
 }
 
-main();
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

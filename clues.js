@@ -4,9 +4,8 @@
 // names the location outright (except CS_DEPT, the known assembly point).
 //
 // GAME SHAPE: every team's route is
-//   CS_DEPT (start) -> all 11 POOL locations, shuffled -> CS_DEPT (finish)
-// There are only 5 distinct shuffles; teams are assigned one by cycling
-// through them in team-number order (see seed.js).
+//   CS_DEPT (start) -> all 12 POOL locations in a fixed order -> CS_DEPT (finish)
+// There are 12 fixed routes ("Group 1".."Group 12"), one per team (see seed.js).
 // Winner = fastest total time between their first and second CS_DEPT scan.
 
 const CS_DEPT = {
@@ -18,7 +17,7 @@ const CS_DEPT = {
   startVerse: "“Let us run with endurance the race that is set before us.” — Hebrews 12:1",
   // Shown after all stops are done, telling them to come back.
   finishText:
-    "Eleven places found, eleven stories walked — now only one place remains: the place where it all began. Return to the CS Department and scan to finish the race.",
+    "Twelve places found, twelve stories walked — now only one place remains: the place where it all began. Return to the CS Department and scan to finish the race.",
   finishVerse: "“I have fought the good fight, I have finished the race, I have kept the faith.” — 2 Timothy 4:7",
 };
 
@@ -99,6 +98,13 @@ const POOL = [
     riddle:
       "By the Sheep Gate in Jerusalem lay a pool with five covered walkways, where a man waited thirty-eight years for the water to stir — until One told him, \"Rise, take up your bed, and walk.\" Find the place on campus that carries this pool's name.",
     verse: "“Now there is in Jerusalem by the Sheep Gate a pool, in Aramaic called Bethesda.” — John 5:2",
+  },
+  {
+    id: "AEROSPACE",
+    name: "Aerospace Department",
+    riddle:
+      "Elijah never tasted death: a chariot of fire and horses of fire swept him up, and he went by a whirlwind into heaven. And the prophet promised that those who wait on the Lord will rise on wings like eagles. Find the department where flight is studied and craft are built to leave the ground.",
+    verse: "“They shall mount up with wings like eagles; they shall run and not be weary.” — Isaiah 40:31",
   },
 ];
 

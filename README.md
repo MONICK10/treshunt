@@ -1,16 +1,16 @@
 # Karunya Campus Treasure Hunt
 
-A Bible-themed treasure hunt for 40 teams. Every team logs in with a
+A Bible-themed treasure hunt for 12 teams. Every team logs in with a
 username/password, then scans the QR code at the CS Department to start
-their clock and get their first clue. From there they visit all 11 pool
-locations in a shuffled order, scanning the QR at each correct stop to
-unlock the next riddle. There are only 5 distinct route orders, shared
-across the 40 teams (team N gets route `(N - 1) % 5`), so teams 5 apart
-run an identical route and several teams cross paths. After the 11th stop,
-the final clue sends them back to the CS Department — scanning that QR a
-second time stops their clock and finishes their run. Winner = fastest
-total time. The admin dashboard shows every team's live progress and
-finish times.
+their clock and get their first clue. From there they visit all 12 pool
+locations, scanning the QR at each correct stop to unlock the next riddle.
+Each team follows one of 12 fixed routes ("Group 1".."Group 12") — team N
+runs Group N. Every group visits the same 12 places in a different order,
+so teams are spread across campus and no two share a stop at the same
+time. After the 12th stop, the final clue sends them back to the CS
+Department — scanning that QR a second time stops their clock and finishes
+their run. Winner = fastest total time. The admin dashboard shows every
+team's live progress and finish times.
 
 ## 1. Get a free MongoDB database
 
@@ -48,12 +48,11 @@ npm install
 npm run seed
 ```
 
-This creates 40 teams (`team01`...`team40`) with random passwords. It first
-generates 5 distinct routes (each a random shuffle of all 11 pool
-locations), then assigns them to teams by cycling in team-number order
-(team 1 & 6 & 11 ... share route A, and so on). It writes `credentials.csv`
-— print it and cut it into 40 slips, one per team. **Run this only once per
-event** — re-running it wipes and regenerates everyone's progress.
+This creates 12 teams (`team01`...`team12`) with random passwords, one per
+group. Team N is assigned Group N's fixed route (the 12 routes are defined
+in `seed.js` as `GROUP_ROUTES`). It writes `credentials.csv` — print it and
+cut it into 12 slips, one per team. **Run this only once per event** —
+re-running it wipes and regenerates everyone's progress.
 
 ## 4. Run it locally to test
 
@@ -87,12 +86,13 @@ After you know your real deployed URL:
 npm run qrcodes
 ```
 
-This writes one PNG per location into the `qr/` folder (`CS_DEPT.png`,
-`LIBRARY.png`, `CIVIL.png`, ... one for every spot in the pool). Print each
-one and place it at the matching physical location. **`CS_DEPT.png` is used
-twice by every team** — once to start (scan it to begin and get your first
-clue) and once to finish (scan it again after your 11th stop). One printed
-copy at the CS Department covers both.
+This wipes and rewrites the `qr-groups/` folder with one PNG per location
+(`CS_DEPT.png`, `LIBRARY.png`, `CIVIL.png`, ... 13 in all — CS Department
+plus the 12 pool stops). Print each one and place it at the matching
+physical location. **`CS_DEPT.png` is used twice by every team** — once to
+start (scan it to begin and get your first clue) and once to finish (scan
+it again after your 12th stop). One printed copy at the CS Department
+covers both.
 
 ## How it works, in short
 
@@ -115,9 +115,9 @@ copy at the CS Department covers both.
 
 ## Editing the clues
 
-All 11 pool-location riddles, plus the CS Dept start/finish text, live in
+All 12 pool-location riddles, plus the CS Dept start/finish text, live in
 `clues.js`. Edit the `riddle`/`verse` (or `startText`/`finishText`) fields
 there — just keep each `id` matching the location's QR code file name. If
-you add or remove a pool location, update `POOL` in `clues.js` — `seed.js`
-builds its 5 routes from a full shuffle of whatever's in that list, so
-every team automatically visits all of them.
+you change the pool, update both `POOL` in `clues.js` and the 12
+`GROUP_ROUTES` in `seed.js` (each route must list every pool `id` exactly
+once); `npm run seed` validates this and fails loudly otherwise.

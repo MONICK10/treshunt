@@ -1,11 +1,8 @@
 // Run once (or whenever you want to reset the game) with: npm run seed
-// Creates 40 teams sharing exactly 5 routes. Every team's route is:
-//   CS_DEPT (start) -> all 11 pool locations, shuffled -> CS_DEPT (finish)
-// Only 5 distinct shuffles are generated. Teams are assigned one by cycling
-// through the 5 in team-number order: team N gets route (N - 1) % 5.
-// So Team 1 & Team 6 & Team 11 ... share a route, and every block of 5
-// consecutive teams covers all 5 routes once each — several teams run the
-// same route and are expected to cross paths.
+// Creates one team per fixed route. Every team's route is:
+//   CS_DEPT (start) -> the 12 pool locations in that group's fixed order -> CS_DEPT (finish)
+// There are 12 fixed routes ("Group 1".."Group 12"), each visiting all 12
+// pool locations exactly once. Team N runs Group N.
 // Prints a credentials table and also writes it to credentials.csv so you
 // can print and hand one row to each team.
 
@@ -16,36 +13,36 @@ const mongoose = require("mongoose");
 const Team = require("./models/Team");
 const { POOL } = require("./clues");
 
-const NUM_TEAMS = 40;
-const NUM_ROUTES = 5;
+// The 12 fixed routes, in team order. Each is the 12 pool location IDs in
+// visiting order; CS_DEPT is added as the start and finish below.
+const GROUP_ROUTES = [
+  // Group 1
+  ["CANTEEN", "EMMANUEL_AUDI", "MECH", "CIVIL", "CHANDRAN", "AGRI", "MEDIA", "LIBRARY", "CTC1", "CAKE_WORLD", "BETHESDA", "AEROSPACE"],
+  // Group 2
+  ["EMMANUEL_AUDI", "MEDIA", "AEROSPACE", "CHANDRAN", "CAKE_WORLD", "MECH", "LIBRARY", "CANTEEN", "AGRI", "CTC1", "CIVIL", "BETHESDA"],
+  // Group 3
+  ["MECH", "CAKE_WORLD", "MEDIA", "CIVIL", "BETHESDA", "LIBRARY", "CHANDRAN", "CANTEEN", "CTC1", "AGRI", "EMMANUEL_AUDI", "AEROSPACE"],
+  // Group 4
+  ["CIVIL", "MECH", "EMMANUEL_AUDI", "CANTEEN", "AEROSPACE", "BETHESDA", "CAKE_WORLD", "CTC1", "LIBRARY", "MEDIA", "AGRI", "CHANDRAN"],
+  // Group 5
+  ["CHANDRAN", "CAKE_WORLD", "MECH", "LIBRARY", "CANTEEN", "AGRI", "CTC1", "CIVIL", "BETHESDA", "EMMANUEL_AUDI", "MEDIA", "AEROSPACE"],
+  // Group 6
+  ["AGRI", "CANTEEN", "CTC1", "AEROSPACE", "MEDIA", "CIVIL", "BETHESDA", "LIBRARY", "CHANDRAN", "CAKE_WORLD", "MECH", "EMMANUEL_AUDI"],
+  // Group 7
+  ["MEDIA", "AGRI", "CHANDRAN", "CIVIL", "MECH", "EMMANUEL_AUDI", "CANTEEN", "AEROSPACE", "BETHESDA", "CAKE_WORLD", "CTC1", "LIBRARY"],
+  // Group 8
+  ["LIBRARY", "CANTEEN", "AGRI", "CTC1", "CIVIL", "BETHESDA", "EMMANUEL_AUDI", "MEDIA", "AEROSPACE", "CHANDRAN", "CAKE_WORLD", "MECH"],
+  // Group 9
+  ["CTC1", "AEROSPACE", "MEDIA", "CIVIL", "BETHESDA", "LIBRARY", "CHANDRAN", "CAKE_WORLD", "MECH", "EMMANUEL_AUDI", "CANTEEN", "AGRI"],
+  // Group 10
+  ["CAKE_WORLD", "CTC1", "LIBRARY", "MEDIA", "AGRI", "CHANDRAN", "CIVIL", "MECH", "EMMANUEL_AUDI", "CANTEEN", "AEROSPACE", "BETHESDA"],
+  // Group 11
+  ["BETHESDA", "CIVIL", "AEROSPACE", "MEDIA", "AGRI", "CANTEEN", "LIBRARY", "MECH", "CAKE_WORLD", "CHANDRAN", "CTC1", "EMMANUEL_AUDI"],
+  // Group 12
+  ["AEROSPACE", "MEDIA", "CIVIL", "BETHESDA", "LIBRARY", "CHANDRAN", "CAKE_WORLD", "MECH", "EMMANUEL_AUDI", "CANTEEN", "AGRI", "CTC1"],
+];
 
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// Build exactly NUM_ROUTES distinct routes. Each route is a random shuffle of
-// ALL pool location IDs (a full permutation, since every team visits all 11),
-// wrapped as [CS_DEPT, ...shuffled, CS_DEPT].
-function buildRoutes() {
-  const poolIds = POOL.map((l) => l.id);
-  const routes = [];
-  const seen = new Set();
-  let guard = 0;
-  while (routes.length < NUM_ROUTES) {
-    if (++guard > 10000) throw new Error("Could not generate distinct routes.");
-    const middle = shuffle(poolIds);
-    const key = middle.join(">");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    routes.push(["CS_DEPT", ...middle, "CS_DEPT"]);
-  }
-  return routes;
-}
+const NUM_TEAMS = GROUP_ROUTES.length; // one team per group
 
 function randomPassword() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no confusing chars (0/O, 1/I)
@@ -54,23 +51,41 @@ function randomPassword() {
   return out;
 }
 
+// Fail loudly if a group route is malformed — a bad route would break a
+// team's whole run.
+function validateRoutes() {
+  const poolIds = POOL.map((l) => l.id);
+  const poolSet = new Set(poolIds);
+  GROUP_ROUTES.forEach((route, i) => {
+    const label = `Group ${i + 1}`;
+    if (route.length !== poolIds.length) {
+      throw new Error(`${label} has ${route.length} stops, expected ${poolIds.length}.`);
+    }
+    if (new Set(route).size !== route.length) {
+      throw new Error(`${label} repeats a location.`);
+    }
+    for (const id of route) {
+      if (!poolSet.has(id)) throw new Error(`${label} references unknown location "${id}".`);
+    }
+    // Every route is a full permutation, so it must contain every pool id.
+    for (const id of poolIds) {
+      if (!route.includes(id)) throw new Error(`${label} is missing location "${id}".`);
+    }
+  });
+}
+
 async function main() {
   if (!process.env.MONGODB_URI) {
     console.error("Set MONGODB_URI in your .env file first (see .env.example).");
     process.exit(1);
   }
-  if (POOL.length < 2) {
-    console.error(`POOL is too small (${POOL.length}).`);
-    process.exit(1);
-  }
-
-  const routes = buildRoutes();
+  validateRoutes();
 
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("Connected to MongoDB. Wiping any existing teams...");
   await Team.deleteMany({});
 
-  const rows = [["Team #", "Team Name", "Route", "Username", "Password"]];
+  const rows = [["Team #", "Team Name", "Group", "Username", "Password"]];
 
   for (let i = 0; i < NUM_TEAMS; i++) {
     const teamNumber = i + 1;
@@ -79,8 +94,7 @@ async function main() {
     const password = randomPassword();
     const passwordHash = bcrypt.hashSync(password, 10);
 
-    const routeIndex = (teamNumber - 1) % NUM_ROUTES;
-    const order = routes[routeIndex].slice();
+    const order = ["CS_DEPT", ...GROUP_ROUTES[i], "CS_DEPT"];
 
     await Team.create({
       teamNumber,
@@ -94,24 +108,19 @@ async function main() {
       finishedAt: null,
     });
 
-    rows.push([teamNumber, teamName, String.fromCharCode(65 + routeIndex), username, password]);
+    rows.push([teamNumber, teamName, `Group ${teamNumber}`, username, password]);
   }
 
   console.log("\nTeam credentials (also saved to credentials.csv):\n");
   console.table(
-    rows.slice(1).map((r) => ({ Team: r[0], Name: r[1], Route: r[2], Username: r[3], Password: r[4] }))
+    rows.slice(1).map((r) => ({ Team: r[0], Name: r[1], Group: r[2], Username: r[3], Password: r[4] }))
   );
 
   const csv = rows.map((r) => r.join(",")).join("\n");
   fs.writeFileSync("credentials.csv", csv);
 
-  console.log("\nThe 5 routes (A–E):");
-  routes.forEach((r, i) => {
-    console.log(`  ${String.fromCharCode(65 + i)}: ${r.join(" -> ")}`);
-  });
-
   console.log(
-    `\nDone. ${NUM_TEAMS} teams created across ${NUM_ROUTES} routes, each visiting all ${POOL.length} locations.`
+    `\nDone. ${NUM_TEAMS} teams created, one per group, each visiting all ${POOL.length} locations.`
   );
   console.log("credentials.csv is ready to print and hand out — keep it secret from participants until game start!");
   await mongoose.disconnect();

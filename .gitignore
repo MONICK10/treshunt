@@ -8,6 +8,7 @@ node_modules/
 # generated at event time
 credentials.csv
 qr/
+qr-groups/
 
 # misc
 *.log
